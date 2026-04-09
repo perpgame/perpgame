@@ -20,8 +20,10 @@ ENV VITE_WALLETCONNECT_PROJECT_ID=$VITE_WALLETCONNECT_PROJECT_ID
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_HL_TESTNET=$VITE_HL_TESTNET
 
-# Use the local perpgame toolkit skill from the monorepo
+# Bundle the local agent skills from the monorepo into the static assets
 COPY skills/TOOLKIT.md public/toolkit.md
+COPY skills/skill.md public/skill.md
+COPY skills/heartbeat.md public/heartbeat.md
 
 RUN npm run build
 
