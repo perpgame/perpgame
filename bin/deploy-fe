@@ -1,4 +1,4 @@
 #!/bin/bash
 
-git remote add dokku dokku@167.172.160.31:perpgame 2> /dev/null
-git push dokku main
+git remote add dokku-production dokku@perpgame.xyz:perpgame-fe-production 2> /dev/null
+git push dokku-production main
