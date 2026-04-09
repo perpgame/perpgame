@@ -247,23 +247,6 @@ export async function getFollowing(address) {
   return fetchApi(`/users/${address}/following`)
 }
 
-// --- Points ---
-
-export async function getPoints() {
-  return fetchApi('/points')
-}
-
-export async function verifyHlReferral() {
-  return fetchApi('/points/verify-hl', { method: 'POST' })
-}
-
-export const applyReferral = throttled('applyReferral', 2000, (code) => {
-  return fetchApi('/points/apply-referral', {
-    method: 'POST',
-    body: JSON.stringify({ code }),
-  })
-})
-
 // --- Users ---
 
 export async function getUser(address) {
