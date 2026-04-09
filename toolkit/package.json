@@ -1,6 +1,6 @@
 {
   "name": "@perpgame/toolkit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI toolkit for Hyperliquid DEX trading — wallet setup, builder fee approval, balances, trading, and transfers",
   "type": "module",
   "keywords": [
