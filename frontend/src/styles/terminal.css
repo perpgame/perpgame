@@ -1,0 +1,1198 @@
+/* ============================
+   Terminal Layout
+   ============================ */
+
+.terminal-layout {
+  display: flex;
+  min-height: 100vh;
+  max-width: 1265px;
+  margin: 0 auto;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-feature-settings: 'tnum' 1, 'cv01' 1, 'cv03' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================
+   Main Area
+   ============================ */
+
+.terminal-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ============================
+   Header
+   ============================ */
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 56px;
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.terminal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.terminal-header-price-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.terminal-header-price {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.terminal-header-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.terminal-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.terminal-header-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 10px;
+  background: var(--surface);
+  border-radius: var(--card-radius);
+}
+
+.terminal-header-stat-label {
+  font-size: 10px;
+  color: var(--text-third);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.terminal-header-stat-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.terminal-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.terminal-header-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: var(--primary-faded);
+  border: 1px solid rgba(181, 239, 220, 0.12);
+  border-radius: var(--card-radius);
+}
+
+.terminal-header-account-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.terminal-header-account-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================
+   Coin Icon
+   ============================ */
+
+.coin-icon {
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+  display: block;
+}
+
+.coin-icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================
+   Asset Selector
+   ============================ */
+
+.asset-selector-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 5px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--card-radius);
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.asset-selector-btn:hover {
+  background: var(--surface);
+}
+
+.asset-selector-coin {
+  letter-spacing: -0.4px;
+}
+
+.asset-selector-chevron {
+  color: var(--text-third);
+  flex-shrink: 0;
+}
+
+
+/* ============================
+   Body: 3-column layout
+   ============================ */
+
+.terminal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 6px;
+  padding: 6px;
+}
+
+.terminal-col-chart {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+}
+
+.terminal-col-order {
+  width: 340px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--card-radius);
+}
+
+/* ============================
+   Chart
+   ============================ */
+
+.terminal-chart {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.terminal-chart-intervals {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--separator);
+  flex-shrink: 0;
+}
+
+.terminal-interval-btn {
+  position: relative;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-third);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.terminal-interval-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transition: transform 0.15s;
+}
+
+.terminal-interval-btn:hover {
+  color: var(--text-secondary);
+}
+
+.terminal-interval-btn.active {
+  color: var(--text);
+}
+
+.terminal-interval-btn.active::after {
+  transform: scaleX(1);
+}
+
+.terminal-chart-container {
+  flex: 1;
+  position: relative;
+  min-height: 200px;
+}
+
+.terminal-chart-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-third);
+  font-size: 13px;
+  gap: 8px;
+}
+
+/* ============================
+   Order Panel
+   ============================ */
+
+.order-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 14px;
+}
+
+.order-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--separator);
+}
+
+/* ---- Side tabs (Long / Short) ---- */
+.order-side-tabs {
+  display: flex;
+  gap: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+/* ---- Available row ---- */
+.order-avail-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.order-avail-row span:last-child {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ---- Summary ---- */
+.order-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.order-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.order-summary-row span:first-child {
+  color: var(--text-third);
+}
+
+.order-summary-row span:last-child {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================
+   Bottom Panel
+   ============================ */
+
+.terminal-bottom {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 200px;
+  min-height: 120px;
+  background: var(--surface);
+  margin: 0 6px 6px;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+}
+
+.terminal-bottom-content {
+  flex: 1;
+  overflow: auto;
+}
+
+.terminal-panel-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-third);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ============================
+   Tables
+   ============================ */
+
+.terminal-table-wrap {
+  overflow-x: auto;
+}
+
+.terminal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-table th {
+  padding: 6px 10px;
+  text-align: left;
+  color: var(--text-third);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--separator);
+}
+
+.terminal-table td {
+  padding: 6px 10px;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.terminal-table tbody tr {
+  transition: background 0.1s;
+}
+
+.terminal-table tbody tr:hover {
+  background: rgba(181, 239, 220, 0.02);
+}
+
+.terminal-table-coin {
+  font-weight: 700;
+  color: var(--text) !important;
+}
+
+.terminal-coin-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.terminal-coin-side {
+  position: relative;
+}
+
+.terminal-coin-side::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 2px 0 0 2px;
+}
+
+.terminal-coin-side.long::after {
+  background: linear-gradient(to right, rgba(181, 239, 220, 0.15), transparent);
+}
+
+.terminal-coin-side.short::after {
+  background: linear-gradient(to right, rgba(246, 70, 93, 0.15), transparent);
+}
+
+/* ============================
+   Order Book
+   ============================ */
+
+.terminal-orderbook {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.orderbook-col-header {
+  display: flex;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-third);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.orderbook-col-header span {
+  flex: 1;
+}
+
+.orderbook-col-header span:last-child {
+  text-align: right;
+}
+
+.orderbook-col-header span:nth-child(2) {
+  text-align: right;
+}
+
+.orderbook-asks,
+.orderbook-bids {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.orderbook-asks {
+  justify-content: flex-end;
+  flex: 1;
+}
+
+.orderbook-bids {
+  flex: 1;
+}
+
+.orderbook-row {
+  display: flex;
+  padding: 2px 12px;
+  font-size: 12px;
+  position: relative;
+  font-variant-numeric: tabular-nums;
+}
+
+.orderbook-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.orderbook-bar.ask {
+  background: var(--loss-red);
+}
+
+.orderbook-bar.bid {
+  background: var(--profit-green);
+}
+
+.orderbook-price,
+.orderbook-size,
+.orderbook-total {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.orderbook-price.ask {
+  color: var(--loss-red);
+}
+
+.orderbook-price.bid {
+  color: var(--profit-green);
+}
+
+.orderbook-size {
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.orderbook-total {
+  text-align: right;
+  color: var(--text-third);
+}
+
+.orderbook-mid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.orderbook-mid-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.orderbook-mid-spread {
+  font-size: 11px;
+  color: var(--text-third);
+}
+
+/* ============================
+   Position Actions
+   ============================ */
+
+.pos-cell-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pos-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.pos-expand-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.pos-row-expanded {
+  background: rgba(181, 239, 220, 0.02);
+}
+
+.pos-actions-row-tr td {
+  padding: 0 !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.pos-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.015);
+  border-top: 1px solid var(--border);
+}
+
+.pos-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pos-actions-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-third);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.pos-actions-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pos-actions-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.pos-actions-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.pos-actions-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pos-actions-btn--danger {
+  color: var(--loss-red);
+  border-color: rgba(246, 70, 93, 0.25);
+}
+
+.pos-actions-btn--danger:hover:not(:disabled) {
+  background: rgba(246, 70, 93, 0.1);
+  color: var(--loss-red);
+}
+
+.pos-actions-btn--primary {
+  color: var(--primary);
+  border-color: rgba(181, 239, 220, 0.2);
+}
+
+.pos-actions-btn--primary:hover:not(:disabled) {
+  background: rgba(181, 239, 220, 0.1);
+}
+
+.pos-actions-input {
+  width: 100px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  outline: none;
+  transition: border-color 0.15s;
+  font-variant-numeric: tabular-nums;
+}
+
+.pos-actions-input::placeholder {
+  color: var(--text-third);
+}
+
+.pos-actions-input:focus {
+  border-color: rgba(181, 239, 220, 0.3);
+}
+
+/* Hide number input spinners */
+.pos-actions-input::-webkit-outer-spin-button,
+.pos-actions-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pos-actions-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Margin edit */
+.pos-margin-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.pos-margin-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  color: var(--text-third);
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+
+.pos-margin-edit-btn:hover {
+  color: var(--primary);
+  background: rgba(181, 239, 220, 0.08);
+}
+
+/* Adjust Margin modal */
+.pos-margin-modal-tabs {
+  display: flex;
+  gap: 0;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.pos-margin-modal-tab {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+
+.pos-margin-modal-tab--active {
+  color: var(--primary);
+  background: rgba(181, 239, 220, 0.08);
+}
+
+.pos-margin-modal-tab:hover:not(.pos-margin-modal-tab--active) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pos-margin-modal-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.pos-margin-modal-input-wrap {
+  margin-bottom: 12px;
+}
+
+.pos-margin-modal-input-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.pos-margin-modal-input-row:focus-within {
+  border-color: rgba(181, 239, 220, 0.3);
+}
+
+.pos-margin-modal-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.pos-margin-modal-input::placeholder {
+  color: var(--text-third);
+}
+
+.pos-margin-modal-input::-webkit-outer-spin-button,
+.pos-margin-modal-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pos-margin-modal-max {
+  padding: 4px 10px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(181, 239, 220, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+  letter-spacing: 0.3px;
+}
+
+.pos-margin-modal-max:hover {
+  background: rgba(181, 239, 220, 0.15);
+}
+
+.pos-margin-modal-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.pos-margin-modal-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.pos-margin-modal-info-row span:first-child {
+  color: var(--text-secondary);
+}
+
+.pos-margin-modal-info-row span:last-child {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================
+   Mobile visibility defaults
+   ============================ */
+
+.terminal-mobile-only {
+  display: none;
+}
+
+.terminal-mobile-cards {
+  display: none;
+  padding: 8px;
+  gap: 8px;
+  flex-direction: column;
+}
+
+/* ============================
+   Position/Order Card (Mobile)
+   ============================ */
+
+.terminal-pos-card {
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  border-left: 3px solid var(--border);
+}
+
+.terminal-pos-card.card-long {
+  border-left-color: var(--profit-green);
+}
+
+.terminal-pos-card.card-short {
+  border-left-color: var(--loss-red);
+}
+
+.terminal-pos-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.terminal-pos-card-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-pos-card-coin {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.terminal-pos-card-lev {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.terminal-pos-card-pnl {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.terminal-pos-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.terminal-pos-card-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.terminal-pos-card-row span:first-child {
+  color: var(--text-third);
+}
+
+.terminal-pos-card-row span:last-child {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================
+   Responsive
+   ============================ */
+
+@media (max-width: 1100px) {
+  .terminal-col-order {
+    width: 300px;
+  }
+}
+
+/* Tablet: stack chart/order vertically */
+@media (max-width: 900px) {
+  .terminal-main {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .terminal-body {
+    flex-direction: column;
+  }
+
+  .terminal-col-chart {
+    border-right: none;
+  }
+
+  .terminal-col-order {
+    width: 100%;
+    padding: 0;
+  }
+
+  .terminal-chart-container {
+    min-height: 300px;
+    height: 300px;
+  }
+
+  .terminal-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .terminal-header-stats {
+    gap: 12px;
+  }
+
+  .terminal-bottom {
+    height: auto;
+    max-height: none;
+  }
+}
+
+/* Mobile: tabbed section layout */
+@media (max-width: 600px) {
+  .terminal-layout {
+    max-width: 100%;
+  }
+
+  .terminal-main {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .terminal-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .terminal-header-left {
+    gap: 8px;
+  }
+
+  .terminal-header-stats {
+    display: none;
+  }
+
+  .terminal-header-divider {
+    display: none;
+  }
+
+  .terminal-header-right {
+    display: none;
+  }
+
+  .terminal-header-price {
+    font-size: 18px;
+  }
+
+  .asset-selector-btn {
+    font-size: 16px;
+    gap: 6px;
+    padding: 4px 8px 4px 4px;
+  }
+
+  /* Hide desktop layout, show mobile layout */
+  .terminal-desktop-only {
+    display: none !important;
+  }
+
+  .terminal-mobile-only {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  /* Mobile chart section */
+  .terminal-mobile-chart {
+    flex: 0 0 auto;
+    height: 260px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--surface);
+    border-radius: var(--card-radius);
+  }
+
+  .terminal-mobile-chart .terminal-chart-container {
+    flex: 1;
+    min-height: 200px;
+    height: auto;
+  }
+
+  /* Mobile trade section */
+  .terminal-mobile-trade {
+    flex: 0 0 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--surface);
+    border-radius: var(--card-radius);
+  }
+
+  .terminal-mobile-trade .order-panel {
+    padding: 16px;
+    height: auto;
+    min-height: 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .terminal-mobile-trade .order-panel > button:last-child {
+    margin-top: 4px !important;
+  }
+
+  /* Mobile positions section */
+  .terminal-mobile-positions {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--surface);
+    border-radius: var(--card-radius);
+  }
+
+  .terminal-mobile-positions .terminal-bottom-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .terminal-chart-intervals {
+    padding: 0 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    justify-content: center;
+  }
+
+  .terminal-chart-intervals::-webkit-scrollbar {
+    display: none;
+  }
+
+  .terminal-interval-btn {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  /* Order panel adjustments */
+  .order-panel {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .order-avail-row {
+    font-size: 13px;
+  }
+
+  .order-summary-row {
+    font-size: 13px;
+  }
+
+  /* Hide non-essential table columns on mobile */
+  .terminal-hide-mobile {
+    display: none;
+  }
+
+  /* Table scroll on small screens */
+  .terminal-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .terminal-table td,
+  .terminal-table th {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  /* Show mobile cards, hide desktop tables */
+  .terminal-mobile-cards {
+    display: flex;
+  }
+
+  .terminal-desktop-table {
+    display: none;
+  }
+}

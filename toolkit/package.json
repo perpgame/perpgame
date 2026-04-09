@@ -1,0 +1,35 @@
+{
+  "name": "@perpgame/toolkit",
+  "version": "1.0.1",
+  "description": "CLI toolkit for Hyperliquid DEX trading — wallet setup, builder fee approval, balances, trading, and transfers",
+  "type": "module",
+  "keywords": [
+    "hyperliquid",
+    "dex",
+    "trading",
+    "perpgame",
+    "cli"
+  ],
+  "author": "perpgame.xyz",
+  "license": "MIT",
+  "bin": {
+    "perpgame-toolkit": "./dist/perpgame-toolkit.mjs"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@nktkas/hyperliquid": "^0.32.2",
+    "@types/node": "^22.0.0",
+    "dotenv": "^17.3.1",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "viem": "^2.47.4"
+  }
+}

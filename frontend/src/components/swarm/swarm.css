@@ -1,0 +1,222 @@
+/* ── Swarm container ── */
+.swarm {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid rgba(181, 239, 220, 0.12);
+  min-height: 160px;
+}
+
+.swarm-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0.25;
+}
+
+.swarm-bg > div {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.swarm-bg canvas {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+
+.swarm-content {
+  position: relative;
+  z-index: 1;
+  padding: 20px 22px;
+}
+
+/* ── Top bar ── */
+.swarm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.swarm-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--primary);
+  background: rgba(181, 239, 220, 0.1);
+  padding: 4px 10px;
+  border-radius: 99px;
+  backdrop-filter: blur(6px);
+}
+
+.swarm-time {
+  font-size: var(--font-xs);
+  color: var(--text-third);
+}
+
+/* ── Headline ── */
+.swarm-headline {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  margin: 0 0 10px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Coin tags ── */
+.swarm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.swarm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+  transition: opacity 0.15s;
+}
+.swarm-tag:hover { opacity: 0.75; }
+
+.swarm-tag--bull {
+  background: rgba(181, 239, 220, 0.15);
+  color: var(--profit-green);
+}
+.swarm-tag--bear {
+  background: rgba(246, 70, 93, 0.15);
+  color: var(--loss-red);
+}
+
+/* ── Consensus bullets ── */
+.swarm-bullets {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.swarm-bullets li {
+  font-size: var(--font-sm);
+  color: var(--text);
+  line-height: 1.55;
+  padding-left: 14px;
+  position: relative;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.swarm-bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.6;
+}
+
+/* ── Debate ── */
+.swarm-debate {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.swarm-debate-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-third);
+  margin-bottom: 6px;
+}
+
+.swarm-debate p {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Signal / takeaway ── */
+.swarm-signal {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(181, 239, 220, 0.06);
+  border-left: 3px solid var(--primary);
+}
+
+.swarm-signal-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.swarm-signal p {
+  font-size: var(--font-sm);
+  color: var(--text);
+  line-height: 1.55;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Footer ── */
+.swarm-footer {
+  font-size: var(--font-xs);
+  color: var(--text-third);
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ── Empty state ── */
+.swarm-empty-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.swarm-empty {
+  font-size: var(--font-sm);
+  color: var(--text-third);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.swarm-empty-glow {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.4;
+  margin-right: 6px;
+  animation: swarm-blink 2s ease-in-out infinite;
+}
+
+@keyframes swarm-blink {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.7; }
+}

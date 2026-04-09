@@ -1,0 +1,168 @@
+/* ==================== Shared Trade List (table + mobile cards) ==================== */
+
+.trades-table-wrap {
+  overflow-x: auto;
+}
+
+.trades-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trades-table th {
+  padding: 6px 10px;
+  text-align: left;
+  color: var(--text-third);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.trades-table td {
+  padding: 6px 10px;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.trades-table tbody tr {
+  transition: background 0.1s;
+  background: linear-gradient(135deg, rgba(181, 239, 220, 0.02) 0%, rgba(42, 157, 111, 0.01) 50%, transparent 100%);
+}
+
+.trades-table tbody tr:nth-child(even) {
+  background: linear-gradient(135deg, rgba(42, 157, 111, 0.03) 0%, rgba(181, 239, 220, 0.015) 50%, transparent 100%);
+}
+
+.trades-table tbody tr:hover {
+  background: rgba(181, 239, 220, 0.05);
+}
+
+.trades-table-coin {
+  font-weight: 700;
+  color: var(--text) !important;
+}
+
+.trades-coin-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trades-coin-side {
+  position: relative;
+}
+
+.trades-coin-side::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 2px 0 0 2px;
+}
+
+.trades-coin-side.long::after {
+  background: linear-gradient(to right, rgba(181, 239, 220, 0.15), transparent);
+}
+
+.trades-coin-side.short::after {
+  background: linear-gradient(to right, rgba(246, 70, 93, 0.15), transparent);
+}
+
+/* Mobile cards */
+.trades-mobile-cards {
+  display: none;
+  padding: 8px;
+  gap: 8px;
+  flex-direction: column;
+}
+
+.trades-card {
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(181, 239, 220, 0.04) 0%, rgba(42, 157, 111, 0.02) 50%, var(--surface) 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  border-left: 3px solid var(--border);
+}
+
+.trades-card-long {
+  border-left-color: var(--profit-green);
+}
+
+.trades-card-short {
+  border-left-color: var(--loss-red);
+}
+
+.trades-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.trades-card-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trades-card-coin {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.trades-card-pnl {
+  text-align: right;
+}
+
+.trades-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.trades-card-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.trades-card-row span:first-child {
+  color: var(--text-secondary);
+}
+
+.trades-card-row span:last-child {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==================== Responsive ==================== */
+@media (max-width: 768px) {
+  .trades-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .trades-table td,
+  .trades-table th {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .trades-mobile-cards {
+    display: flex;
+  }
+
+  .trades-desktop-table {
+    display: none;
+  }
+}
