@@ -117,7 +117,6 @@ export default function Admin() {
 
       <div className="admin-quick-links">
         <Link to="/admin/error-logs" className="copy-header-link">Error Logs</Link>
-        <Link to="/admin/studio" className="copy-header-link">Motion Studio</Link>
       </div>
 
       {stats && (

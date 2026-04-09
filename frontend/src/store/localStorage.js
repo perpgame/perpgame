@@ -5,7 +5,6 @@ const KEYS = {
   COMMENTS: 'perpgame_comments',
   LIKES: 'perpgame_likes',
   FOLLOWS: 'perpgame_follows',
-  POINTS: 'perpgame_points',
 }
 
 function get(key) {
@@ -36,11 +35,6 @@ export function setCurrentUser(user) {
   const users = get(KEYS.USERS) || {}
   users[user.address] = { ...users[user.address], ...user }
   set(KEYS.USERS, users)
-  // Auto-award 50 account points on first login
-  const points = getPoints(user.address)
-  if (!points.account) {
-    addPoints(user.address, 'account', 50)
-  }
 }
 
 export function getUser(address) {
@@ -162,70 +156,6 @@ export function toggleFollow(userAddress, targetAddress) {
 export function isFollowing(userAddress, targetAddress) {
   const all = get(KEYS.FOLLOWS) || {}
   return (all[userAddress] || []).includes(targetAddress)
-}
-
-
-// Points
-function defaultPoints() {
-  return { total: 0, account: 0, invites: 0, hlReferral: 0, inviteCount: 0, hlReferralVerified: false, referralCode: '', referredBy: null }
-}
-
-export function getPoints(userAddress) {
-  const all = get(KEYS.POINTS) || {}
-  const p = all[userAddress]
-  const code = getReferralCode(userAddress)
-  if (!p) return { ...defaultPoints(), referralCode: code }
-  return { ...defaultPoints(), ...p, referralCode: code }
-}
-
-export function addPoints(userAddress, actionType, amount) {
-  const all = get(KEYS.POINTS) || {}
-  if (!all[userAddress]) all[userAddress] = { ...defaultPoints() }
-  all[userAddress].total += amount
-  if (actionType === 'account') all[userAddress].account += amount
-  if (actionType === 'invites') {
-    all[userAddress].invites += amount
-    all[userAddress].inviteCount = (all[userAddress].inviteCount || 0) + 1
-  }
-  if (actionType === 'hlReferral') all[userAddress].hlReferral += amount
-  set(KEYS.POINTS, all)
-}
-
-export function setHlReferralVerified(userAddress) {
-  const all = get(KEYS.POINTS) || {}
-  if (!all[userAddress]) all[userAddress] = { ...defaultPoints() }
-  all[userAddress].hlReferralVerified = true
-  set(KEYS.POINTS, all)
-}
-
-export function getReferralCode(userAddress) {
-  if (!userAddress) return ''
-  const all = get(KEYS.POINTS) || {}
-  if (!all[userAddress]) all[userAddress] = { ...defaultPoints() }
-  // Return existing stored code or generate a new random one
-  if (all[userAddress].referralCode) return all[userAddress].referralCode
-  const bytes = crypto.getRandomValues(new Uint8Array(6))
-  const code = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
-  all[userAddress].referralCode = code
-  set(KEYS.POINTS, all)
-  return code
-}
-
-export function findUserByReferralCode(code) {
-  if (!code) return null
-  const all = get(KEYS.POINTS) || {}
-  const normalized = code.toLowerCase()
-  for (const [addr, data] of Object.entries(all)) {
-    if (data.referralCode && data.referralCode.toLowerCase() === normalized) return addr
-  }
-  return null
-}
-
-export function setReferredBy(userAddress, referrerAddress) {
-  const all = get(KEYS.POINTS) || {}
-  if (!all[userAddress]) all[userAddress] = { ...defaultPoints() }
-  all[userAddress].referredBy = referrerAddress
-  set(KEYS.POINTS, all)
 }
 
 // Utility

@@ -12,13 +12,6 @@ async function post(body) {
   return res.json();
 }
 
-export async function getUserReferral(address) {
-  return post({
-    type: "referral",
-    user: address,
-  });
-}
-
 export async function getUserState(address) {
   return post({
     type: "clearinghouseState",

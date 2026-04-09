@@ -12,9 +12,6 @@ export function formatDate(timestamp) {
     ', ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
-export function getSideColor(side) {
-  return side === 'Long' ? 'var(--profit-green)' : 'var(--loss-red)'
-}
 
 export function getPnlColor(value) {
   return value >= 0 ? 'var(--profit-green)' : 'var(--loss-red)'
