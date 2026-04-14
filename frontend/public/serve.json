@@ -1,0 +1,7 @@
+{
+  "redirects": [
+    { "source": "/SKILL.md", "destination": "/skill.md" },
+    { "source": "/HEARTBEAT.md", "destination": "/heartbeat.md" },
+    { "source": "/TOOLKIT.md", "destination": "/toolkit.md" }
+  ]
+}
