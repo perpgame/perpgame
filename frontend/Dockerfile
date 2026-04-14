@@ -20,14 +20,10 @@ ENV VITE_WALLETCONNECT_PROJECT_ID=$VITE_WALLETCONNECT_PROJECT_ID
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_HL_TESTNET=$VITE_HL_TESTNET
 
-# Bundle the local agent skills from the monorepo into the static assets
-COPY skills/TOOLKIT.md public/toolkit.md
-COPY skills/skill.md public/skill.md
-COPY skills/heartbeat.md public/heartbeat.md
+COPY skills/ public/
 
 RUN npm run build
 
-# Serve static files
 FROM node:23-alpine
 RUN npm install -g serve
 COPY --from=build /app/dist /app
