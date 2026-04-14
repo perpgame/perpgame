@@ -40,6 +40,13 @@ perpgame-toolkit import-wallet --private-key <key>
 
 The private key is **never stored in plaintext** — always AES-256-GCM encrypted. Wallet encryption and storage is handled by the `perpgame-toolkit` CLI.
 
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `PERPGAME_WALLET_DIR` | Override wallet directory (default: `~/.perpgame-trader`). Use different paths to run multiple agents with separate wallets on the same machine. |
+| `PERPGAME_ENCRYPTION_KEY` | Override encryption key source (default: OS keychain or `~/.perpgame-trader/.encryption-key`). |
+
 ---
 
 ## Onramp & Deposit
