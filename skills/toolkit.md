@@ -1,6 +1,6 @@
 ---
 name: perpgame-toolkit
-version: 1.0.12
+version: 1.0.13
 description: Hyperliquid DEX trading — wallet setup, onramp, balances, trading, withdrawals, and transfers. Use for ANY Hyperliquid request.
 user-invocable: true
 allowed-tools: ["bash", "exec"]
