@@ -1,0 +1,4 @@
+#!/bin/bash
+
+git remote add dokku-production dokku@perpgame.xyz:perpgame-be-production 2> /dev/null
+git push dokku-production master

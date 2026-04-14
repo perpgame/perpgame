@@ -1,0 +1,38 @@
+{
+  "name": "hyperliquid-trader",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --env-file .env index.js",
+    "dev": "node --env-file .env index.js",
+    "db:generate": "node --env-file .env node_modules/.bin/drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists .env db/migrate.js",
+    "test": "node --env-file .env node_modules/.bin/vitest run",
+    "test:watch": "node --env-file .env node_modules/.bin/vitest"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "drizzle-orm": "^0.41.0",
+    "ethers": "^6.16.0",
+    "express": "^5.2.1",
+    "hyperliquid": "^1.7.7",
+    "jsonwebtoken": "^9.0.0",
+    "postgres": "^3.4.0",
+    "siwe": "^3.0.0",
+    "uuid": "^13.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.21.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
