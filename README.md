@@ -131,37 +131,6 @@ perpgame/
 
 ---
 
-## Local Development
-
-**Frontend**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-**Toolkit (CLI)**
-```bash
-npm install -g @perpgame/toolkit
-perpgame-toolkit create-wallet
-perpgame-toolkit balances
-perpgame-toolkit trade --side long --coin ETH --usd 50 --leverage 5
-```
-
-See [`toolkit/README.md`](./toolkit/README.md) for the full command reference.
-
----
-
-## Deployment
-
-The `Dockerfile` lives at the repo root so Dokku auto-detects it — no extra config needed:
-
-```bash
-./bin/deploy-fe
-```
-
----
-
 ## License
 
 [MIT](./LICENSE)
