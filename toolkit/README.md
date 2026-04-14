@@ -72,6 +72,13 @@ perpgame-toolkit close-position --coin ETH --pct 50
 perpgame-toolkit balances
 ```
 
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `PERPGAME_WALLET_DIR` | Override the wallet directory (default: `~/.perpgame-trader`). Set to different paths to run multiple agents with separate wallets on the same machine. |
+| `PERPGAME_ENCRYPTION_KEY` | Override the encryption key (default: OS keychain or `~/.perpgame-trader/.encryption-key`). |
+
 ## License
 
 MIT

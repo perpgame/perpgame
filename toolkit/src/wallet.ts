@@ -1,5 +1,6 @@
 /**
  * Wallet file I/O for ~/.perpgame-trader/wallet.enc
+ * Override directory with PERPGAME_WALLET_DIR env var.
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -8,7 +9,7 @@ import type { WalletData } from "./crypto.js";
 import { decryptPrivateKey } from "./crypto.js";
 import { getEncryptionKey } from "./keychain.js";
 
-const CONFIG_DIR = join(homedir(), ".perpgame-trader");
+const CONFIG_DIR = process.env.PERPGAME_WALLET_DIR ?? join(homedir(), ".perpgame-trader");
 const WALLET_FILE = join(CONFIG_DIR, "wallet.enc");
 
 export const walletExists = (): boolean => existsSync(WALLET_FILE);
