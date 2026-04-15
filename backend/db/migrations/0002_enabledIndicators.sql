@@ -1,0 +1,1 @@
+ALTER TABLE "agents" ADD COLUMN "enabled_indicators" text[] DEFAULT '{"rsi","macd","bollinger_bands","ema","sma","atr","obv"}';
