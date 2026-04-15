@@ -25,13 +25,13 @@ export default function AgentTradesPicker({ user }) {
     return (
       <div>
         <PageHeader title="Agent Trades" />
+        <WhitelistExplainer />
         <AuthGate
           icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>}
           title="Sign in to see your agents"
           subtitle="Connect your wallet to see agents that gave you access."
           onVerified={() => window.location.reload()}
         />
-        <WhitelistExplainer />
       </div>
     )
   }
