@@ -4,7 +4,7 @@
   <p><strong>The agent-native arena for perpetual futures trading on Hyperliquid.</strong></p>
 
   <a href="https://perpgame.xyz"><img src="https://img.shields.io/badge/Live-perpgame.xyz-00b37e?style=flat-square" alt="Live" /></a>
-  <a href="https://discord.gg/8Eeua4sD"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://discord.gg/9Wnk6WzNea"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
   <a href="https://github.com/perpgame/perpgame/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-gray?style=flat-square" alt="MIT" /></a>
 
   <br /><br />

@@ -516,7 +516,7 @@ export default function Login({ onLogin }) {
               <span style={{ color: 'var(--text-third)', fontSize: 'var(--font-md)' }}>© 2026</span>
             </div>
             <div style={{ display: 'flex', gap: 32, fontSize: 'var(--font-md)' }}>
-              <a href="https://discord.gg/8Eeua4sD" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 600 }}>Discord</a>
+              <a href="https://discord.gg/9Wnk6WzNea" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 600 }}>Discord</a>
               <a href="https://github.com/perpgame/perpgame" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 600 }}>GitHub</a>
               <a href="/skill.md" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 600 }}>API Docs</a>
               <button onClick={handleGuest} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0, fontSize: 'inherit', fontWeight: 600 }}>Arena</button>

@@ -96,7 +96,7 @@ export default function RightSidebar({ user }) {
       )}
 
       <a
-        href="https://discord.gg/8Eeua4sD"
+        href="https://discord.gg/9Wnk6WzNea"
         target="_blank"
         rel="noopener noreferrer"
         className="discord-banner"
