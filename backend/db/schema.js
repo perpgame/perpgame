@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, jsonb, varchar, boolean, doublePrecision, bigint, primaryKey, check } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, jsonb, varchar, boolean, doublePrecision, bigint, primaryKey, check, numeric } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // ─── Users (address-based, SIWE auth) ───────────────────────────────────────
@@ -86,6 +86,13 @@ export const posts = pgTable("posts", {
   predictionLesson: text("prediction_lesson"),
   predictionLessonType: text("prediction_lesson_type"),
   confidence: doublePrecision("confidence"),
+  // Strategy intelligence layer (Phase 1)
+  predictionNetDelta: doublePrecision("prediction_net_delta"),
+  atrAtCall: doublePrecision("atr_at_call"),
+  marketRegime: varchar("market_regime", { length: 20 }),
+  fundingRegime: varchar("funding_regime", { length: 20 }),
+  isHoldout: boolean("is_holdout").default(false),
+  strategyId: varchar("strategy_id", { length: 64 }),
 });
 
 
@@ -191,4 +198,97 @@ export const agentState = pgTable("agent_state", {
   state: jsonb("state").notNull().default({}),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// ─── Strategy Registry (Phase 2) ─────────────────────────────────────────────
+
+export const strategies = pgTable("strategies", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  agentAddress: varchar("agent_address", { length: 42 }).notNull().references(() => users.address),
+  parentId: varchar("parent_id", { length: 64 }),
+  ancestorIds: jsonb("ancestor_ids").default([]),
+  mutationType: varchar("mutation_type", { length: 20 }),
+  conditions: jsonb("conditions").notNull().default([]),
+  direction: varchar("direction", { length: 10 }),
+  timeframe: varchar("timeframe", { length: 10 }),
+  coin: varchar("coin", { length: 10 }).default("*"),
+  status: varchar("status", { length: 20 }).default("hypothesis"),
+  devStats: jsonb("dev_stats").default({}),
+  holdoutStats: jsonb("holdout_stats").default({}),
+  regimeAccuracy: jsonb("regime_accuracy").default({}),
+  alphaDecay: jsonb("alpha_decay").default({}),
+  correlations: jsonb("correlations").default({}),
+  consecutiveLosses: integer("consecutive_losses").default(0),
+  shadowCycles: integer("shadow_cycles").default(0),
+  kellyFraction: doublePrecision("kelly_fraction"),
+  insight: text("insight"),
+  promotedAt: timestamp("promoted_at"),
+  retiredAt: timestamp("retired_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const strategyWalkForwardFolds = pgTable("strategy_walk_forward_folds", {
+  id: serial("id").primaryKey(),
+  strategyId: varchar("strategy_id", { length: 64 }).notNull().references(() => strategies.id, { onDelete: "cascade" }),
+  fold: integer("fold").notNull(),
+  trainStart: timestamp("train_start"),
+  trainEnd: timestamp("train_end"),
+  testStart: timestamp("test_start"),
+  testEnd: timestamp("test_end"),
+  signals: integer("signals"),
+  accuracy: doublePrecision("accuracy"),
+  regime: varchar("regime", { length: 20 }),
+  passed: boolean("passed"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const strategyCalibration = pgTable("strategy_calibration", {
+  id: serial("id").primaryKey(),
+  strategyId: varchar("strategy_id", { length: 64 }).notNull().references(() => strategies.id, { onDelete: "cascade" }),
+  bucketMin: doublePrecision("bucket_min"),
+  bucketMax: doublePrecision("bucket_max"),
+  predictedCount: integer("predicted_count").default(0),
+  actualAccuracy: doublePrecision("actual_accuracy"),
+  isotonicCorrected: doublePrecision("isotonic_corrected"),
+  lastRefitCycle: integer("last_refit_cycle"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ─── Coin Edge Profiles (Phase 5A) ───────────────────────────────────────────
+
+export const coinEdgeProfiles = pgTable("coin_edge_profiles", {
+  id: serial("id").primaryKey(),
+  agentAddress: varchar("agent_address", { length: 42 }).notNull().references(() => users.address),
+  coin: varchar("coin", { length: 10 }).notNull(),
+  signals: integer("signals").default(0),
+  timeSpanDays: integer("time_span_days").default(0),
+  accuracy: doublePrecision("accuracy"),
+  ciLower: doublePrecision("ci_lower"),
+  kellyFraction: doublePrecision("kelly_fraction"),
+  bestRegime: varchar("best_regime", { length: 20 }),
+  edgeStatus: varchar("edge_status", { length: 20 }).default("insufficient_data"),
+  suppressUntil: timestamp("suppress_until"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.agentAddress, table.coin] }),
+]);
+
+// ─── Agent Trust Models (Phase 5B) ───────────────────────────────────────────
+
+export const agentTrustModels = pgTable("agent_trust_models", {
+  id: serial("id").primaryKey(),
+  observerAddress: varchar("observer_address", { length: 42 }).notNull().references(() => users.address),
+  observedAddress: varchar("observed_address", { length: 42 }).notNull().references(() => users.address),
+  overallTrustWeight: doublePrecision("overall_trust_weight").default(0.50),
+  trustDecayHalfLifeCycles: integer("trust_decay_half_life_cycles").default(100),
+  lastUpdatedCycle: integer("last_updated_cycle").default(0),
+  regimeTrust: jsonb("regime_trust").default({}),
+  agreedAndWon: doublePrecision("agreed_and_won").default(0),
+  agreedAndLost: doublePrecision("agreed_and_lost").default(0),
+  disagreedAndTheyWon: doublePrecision("disagreed_and_they_won").default(0),
+  disagreedAndIWon: doublePrecision("disagreed_and_i_won").default(0),
+  divergencePremium: doublePrecision("divergence_premium").default(0),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.observerAddress, table.observedAddress] }),
+]);
 

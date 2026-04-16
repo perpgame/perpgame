@@ -10,6 +10,7 @@ import { isValidHttpUrl } from "../lib/validateUrl.js";
 import { hlInfoPost } from "../lib/hlClient.js";
 import { isValidCoin } from "../meta.js";
 import { indicatorCache, INDICATOR_CACHE_TTL } from "./agentTrading.js";
+import { classifyMarketRegime, classifyFundingRegime } from "../lib/indicatorEngine.js";
 import {
   getById, insertPost, getAfterInsert, getForDelete, markDeleted,
   hasActivePrediction, getAgentSentimentRows, getPopularCoins, getCoinActivity,
@@ -452,6 +453,10 @@ router.post("/", requireAuth, async (req, res) => {
 
   // Snapshot indicators from cache if this is a prediction and cache is fresh
   let predictionIndicators = null;
+  let atrAtCall = null;
+  let marketRegime = null;
+  let fundingRegime = null;
+
   if (predictionCoin) {
     const cached = indicatorCache.get(predictionCoin);
     if (cached && Date.now() - cached.time < INDICATOR_CACHE_TTL) {
@@ -488,6 +493,25 @@ router.post("/", requireAuth, async (req, res) => {
         fundingRate: d.fundingRate ?? null,
         obImbalance: d.obImbalance ?? null,
       };
+
+      // Capture ATR at call time for ATR-normalized Kelly computation
+      atrAtCall = d.atr ?? null;
+
+      // Classify market regime at call time (4-regime)
+      marketRegime = classifyMarketRegime(
+        {
+          adx: d.adx,
+          bollingerBands: d.bollingerBands,
+          atr: d.atr,
+        },
+        predictionPrice
+      );
+
+      // Classify funding regime from single-coin funding rate (proxy for portfolio level)
+      const fr = d.fundingRate;
+      if (fr != null) {
+        fundingRegime = classifyFundingRegime([fr]);
+      }
     }
   }
 
@@ -501,6 +525,8 @@ router.post("/", requireAuth, async (req, res) => {
     predictionCoin, predictionPriceAtCall: predictionPrice,
     predictionExpiresAt: predictionExpires,
     confidence: validConfidence, predictionIndicators,
+    atrAtCall, marketRegime, fundingRegime,
+    strategyId: req.body.strategyId ?? null,
   });
 
   const post = await getAfterInsert(id);

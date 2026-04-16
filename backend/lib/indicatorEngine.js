@@ -482,10 +482,60 @@ export function evaluateConditions(ind, conditions, logic = 'all') {
 
 // ─── classifyRegime ───────────────────────────────────────────────────────────
 // Returns "trending" | "ranging" | null based on ADX value.
+// Kept for backward compatibility with existing backtest code.
 export function classifyRegime(ind, adxThreshold = 25) {
   const adx = ind.adx?.adx;
   if (adx == null) return null;
   return adx >= adxThreshold ? "trending" : "ranging";
+}
+
+// ─── classifyMarketRegime ─────────────────────────────────────────────────────
+// Full 4-regime classification per strategy.md Layer 3.
+// Returns "trending" | "mean_reverting" | "volatile" | "choppy" | null
+//
+// priceAtCall: current close price (needed for Bollinger Band containment check)
+// percentileThresholds: optional { bbWidth90: number, atr90: number }
+//   When omitted, uses heuristic thresholds:
+//   - volatile if bbWidth > 8% (wide bands) or ATR/price > 2%
+export function classifyMarketRegime(ind, priceAtCall, percentileThresholds = null) {
+  const adx = ind.adx?.adx ?? ind.adx ?? null;
+  const bbUpper = ind.bollingerBands?.upper ?? ind.bbUpper ?? null;
+  const bbLower = ind.bollingerBands?.lower ?? ind.bbLower ?? null;
+  const bbWidth = ind.bollingerBands?.width ?? ind.bbWidth ?? null;  // as percentage
+  const atr     = ind.atr ?? null;
+
+  // Trending: ADX > 25
+  if (adx != null && adx > 25) return 'trending';
+
+  // Volatile: BBWidth or ATR exceeds 90th-percentile threshold
+  const bbWidthPct = bbWidth != null ? bbWidth : null;  // already in % from engine
+  const atrPct     = (atr != null && priceAtCall > 0) ? (atr / priceAtCall * 100) : null;
+
+  const bbThresh  = percentileThresholds?.bbWidth90 ?? 8.0;   // 8% bbWidth as fallback
+  const atrThresh = percentileThresholds?.atr90     ?? 2.0;   // 2% ATR/price as fallback
+
+  if ((bbWidthPct != null && bbWidthPct > bbThresh) || (atrPct != null && atrPct > atrThresh)) {
+    return 'volatile';
+  }
+
+  // Mean-reverting: ADX < 20 AND price contained within Bollinger Bands
+  if (adx != null && adx < 20 && bbUpper != null && bbLower != null && priceAtCall != null) {
+    if (priceAtCall >= bbLower && priceAtCall <= bbUpper) return 'mean_reverting';
+  }
+
+  return 'choppy';
+}
+
+// ─── classifyFundingRegime ────────────────────────────────────────────────────
+// Portfolio-level funding regime per strategy.md Layer 3.
+// fundingRates: array of numbers (8h funding rates across active coins)
+// Returns "funding_long" | "funding_short" | "funding_neutral"
+export function classifyFundingRegime(fundingRates) {
+  if (!Array.isArray(fundingRates) || fundingRates.length === 0) return 'funding_neutral';
+  const mean = fundingRates.reduce((s, r) => s + r, 0) / fundingRates.length;
+  if (mean > 0.0001) return 'funding_long';
+  if (mean < -0.0001) return 'funding_short';
+  return 'funding_neutral';
 }
 
 // ─── computeBacktestStats ─────────────────────────────────────────────────────

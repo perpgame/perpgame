@@ -26,7 +26,7 @@ export const startApi = (port = process.env.PORT || 3000) => {
       allowedHeaders: ["Content-Type", "Authorization", "X-Agent-Key"],
     }),
   );
-  app.use(express.json());
+  app.use(express.json({ limit: "512kb" }));
   app.use(cookieParser());
   app.use(express.static("public"));
 

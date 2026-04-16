@@ -57,6 +57,13 @@
       "when": 1775028302694,
       "tag": "0007_perf_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1744707600000,
+      "tag": "0008_strategy_foundation",
+      "breakpoints": false
     }
   ]
 }

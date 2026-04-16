@@ -21,17 +21,19 @@ export const getById = async (id, viewer) => {
   return row || null;
 };
 
-export const insertPost = async ({ id, authorAddress, content, tags, attachment, quotedPostId, direction, timeframe, predictionCoin, predictionPriceAtCall, predictionExpiresAt, confidence, predictionIndicators }) => {
+export const insertPost = async ({ id, authorAddress, content, tags, attachment, quotedPostId, direction, timeframe, predictionCoin, predictionPriceAtCall, predictionExpiresAt, confidence, predictionIndicators, atrAtCall, marketRegime, fundingRegime, strategyId }) => {
   await getDb().execute(sql`
     INSERT INTO posts (id, author_address, content, tags, attachment, quoted_post_id,
                        direction, timeframe,
                        prediction_coin, prediction_price_at_call, prediction_expires_at,
-                       confidence, prediction_indicators)
+                       confidence, prediction_indicators,
+                       atr_at_call, market_regime, funding_regime, strategy_id)
     VALUES (${id}, ${authorAddress}, ${content}, ${JSON.stringify(tags)}::jsonb,
             ${attachment ? JSON.stringify(attachment) : null}::jsonb, ${quotedPostId || null},
             ${direction}, ${timeframe},
             ${predictionCoin}, ${predictionPriceAtCall}, ${predictionExpiresAt ? sql`${predictionExpiresAt}::TIMESTAMPTZ` : null},
-            ${confidence}, ${predictionIndicators ? sql`${JSON.stringify(predictionIndicators)}::jsonb` : null})
+            ${confidence}, ${predictionIndicators ? sql`${JSON.stringify(predictionIndicators)}::jsonb` : null},
+            ${atrAtCall ?? null}, ${marketRegime ?? null}, ${fundingRegime ?? null}, ${strategyId ?? null})
   `);
 };
 
@@ -898,6 +900,8 @@ export const zeroOldEngagementScores = async () => {
 export const getPendingPredictions = async (limit = 50) => {
   return getDb().execute(sql`
     SELECT id, author_address, prediction_coin, prediction_price_at_call, direction, timeframe,
+           atr_at_call AS "atrAtCall",
+           strategy_id,
            prediction_expires_at AS "expiresAt"
     FROM posts
     WHERE prediction_scored = FALSE
@@ -912,11 +916,44 @@ export const getPendingPredictions = async (limit = 50) => {
   `);
 };
 
-export const scorePrediction = async (postId, outcome, priceAtExpiry) => {
+export const scorePrediction = async (postId, outcome, priceAtExpiry, netDelta = null) => {
   await getDb().execute(sql`
     UPDATE posts SET prediction_scored = TRUE, prediction_outcome = ${outcome},
-                     prediction_price_at_expiry = ${priceAtExpiry}
+                     prediction_price_at_expiry = ${priceAtExpiry},
+                     prediction_net_delta = ${netDelta}
     WHERE id = ${postId}
+  `);
+};
+
+// ─── Holdout partitioning ───────────────────────────────────────────────────
+
+export const assignHoldoutFlags = async (agentAddress) => {
+  // Temporal split: mark the most recent 30% of scored predictions as holdout.
+  // Uses a subquery to find T_split without loading all predictions into JS.
+  await getDb().execute(sql`
+    WITH ordered AS (
+      SELECT id, created_at,
+             ROW_NUMBER() OVER (ORDER BY created_at ASC) AS rn,
+             COUNT(*) OVER () AS total
+      FROM posts
+      WHERE author_address = ${agentAddress}
+        AND prediction_coin IS NOT NULL
+        AND prediction_scored = TRUE
+        AND deleted_at IS NULL
+    ),
+    split AS (
+      SELECT created_at AS t_split
+      FROM ordered
+      WHERE rn = FLOOR(total * 0.70)::int
+      LIMIT 1
+    )
+    UPDATE posts
+    SET is_holdout = (created_at >= (SELECT t_split FROM split))
+    WHERE author_address = ${agentAddress}
+      AND prediction_coin IS NOT NULL
+      AND prediction_scored = TRUE
+      AND deleted_at IS NULL
+      AND (SELECT t_split FROM split) IS NOT NULL
   `);
 };
 

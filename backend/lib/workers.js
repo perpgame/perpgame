@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { hlInfoPost, fetchPriceAtTime } from "./hlClient.js";
 import { sendAgentEvent } from "./wsServer.js";
-import { refreshEngagementScores, zeroOldEngagementScores, getPendingPredictions, scorePrediction, getRecentAgentPostsForDigest } from "../db/queries/posts.js";
+import { refreshEngagementScores, zeroOldEngagementScores, getPendingPredictions, scorePrediction, getRecentAgentPostsForDigest, assignHoldoutFlags } from "../db/queries/posts.js";
 import { deleteExpiredNonces } from "../db/queries/nonces.js";
 import { deleteExpiredTokens } from "../db/queries/revokedTokens.js";
 import { deleteOldEvents } from "../db/queries/agentEvents.js";
 import { insertDigest } from "../db/queries/swarmDigests.js";
+import { computeNetDelta } from "./executionCost.js";
+import { getDb } from "../db/index.js";
+import { sql } from "drizzle-orm";
+import { getStrategiesByAgent, updateAlphaDecay, updateStrategyStatus, incrementConsecutiveLosses, resetConsecutiveLosses } from "../db/queries/strategies.js";
 
 /**
  * Run a callback on a fixed interval (ms). Swallows errors and logs them.
@@ -102,7 +106,40 @@ export const startWorkers = () => {
       }
       const changePercent = Math.round((priceChange / post.prediction_price_at_call) * 10000) / 100;
 
-      await scorePrediction(post.id, outcome, resolvedPrice);
+      // Compute net delta (gross directional move minus round-trip execution cost)
+      const netDelta = outcome !== "neutral"
+        ? computeNetDelta({
+            priceAtCall: post.prediction_price_at_call,
+            priceAtExpiry: resolvedPrice,
+            direction: post.direction,
+          })
+        : null;
+
+      await scorePrediction(post.id, outcome, resolvedPrice, netDelta);
+
+      // ─── Per-strategy circuit breaker ─────────────────────────────────────
+      // Update consecutive loss counter on the strategy that fired this prediction.
+      // Auto-suspend at 3 consecutive losses per strategy.md Layer: Drawdown Circuit Breakers.
+      if (post.strategy_id) {
+        try {
+          if (outcome === "wrong") {
+            const losses = await incrementConsecutiveLosses(post.strategy_id);
+            if (losses >= 3) {
+              await updateStrategyStatus(post.strategy_id, "suspended");
+              console.log(`[worker:prediction-scorer] Strategy ${post.strategy_id} suspended after ${losses} consecutive losses`);
+              sendAgentEvent(post.author_address, "strategy_suspended", {
+                strategyId: post.strategy_id,
+                reason: "consecutive_losses",
+                consecutiveLosses: losses,
+              });
+            }
+          } else if (outcome === "correct") {
+            await resetConsecutiveLosses(post.strategy_id);
+          }
+        } catch (err) {
+          console.error(`[worker:prediction-scorer] circuit breaker update failed for strategy ${post.strategy_id}:`, err.message);
+        }
+      }
 
       sendAgentEvent(post.author_address, "prediction_scored", {
         postId: post.id,
@@ -115,13 +152,98 @@ export const startWorkers = () => {
       });
     }
 
-    if (pendingPosts.length > 0) console.log(`[worker:prediction-scorer] Scored ${pendingPosts.length} predictions`);
+    if (pendingPosts.length > 0) {
+      console.log(`[worker:prediction-scorer] Scored ${pendingPosts.length} predictions`);
+
+      // Recompute holdout partition for every agent whose predictions were just scored
+      const scoredAgents = [...new Set(pendingPosts.map(p => p.author_address))];
+      for (const agentAddr of scoredAgents) {
+        try {
+          await assignHoldoutFlags(agentAddr);
+        } catch (err) {
+          console.error(`[worker:prediction-scorer] holdout assignment failed for ${agentAddr}:`, err.message);
+        }
+      }
+    }
   }));
 
   // ─── Agent events cleanup (every hour) ──────────────────────────────
   timers.push(schedule("event-cleanup", 60 * 60_000, async () => {
     const pruned = await deleteOldEvents();
     if (pruned > 0) console.log(`[worker:event-cleanup] Pruned ${pruned} old agent events`);
+  }));
+
+  // ─── Alpha decay monitoring (every 7 days) ────────────────────────────────
+  // Computes rolling 30-day accuracy windows per active strategy and checks
+  // for decay slope < -0.01/week for 3 consecutive weeks (strategy.md Layer 7).
+  timers.push(schedule("alpha-decay", 7 * 24 * 60 * 60_000, async () => {
+    let flagged = 0;
+
+    // Find all agents with active strategies
+    const agentRows = await getDb().execute(sql`
+      SELECT DISTINCT agent_address FROM strategies WHERE status = 'active'
+    `).catch(() => []);
+
+    for (const { agent_address } of agentRows) {
+      const strategies = await getStrategiesByAgent(agent_address, "active").catch(() => []);
+
+      for (const strategy of strategies) {
+        // Build 5 rolling 30-day accuracy windows (most recent 5 weeks)
+        const windows = [];
+        for (let w = 4; w >= 0; w--) {
+          const windowEnd   = new Date(Date.now() - w * 7 * 24 * 3600_000);
+          const windowStart = new Date(windowEnd.getTime() - 30 * 24 * 3600_000);
+
+          const [row] = await getDb().execute(sql`
+            SELECT
+              COUNT(*) FILTER (WHERE prediction_outcome = 'correct')::int AS correct,
+              COUNT(*) FILTER (WHERE prediction_outcome IN ('correct','wrong'))::int AS decided
+            FROM posts
+            WHERE author_address = ${agent_address}
+              AND strategy_id = ${strategy.id}
+              AND prediction_scored = TRUE
+              AND created_at >= ${windowStart.toISOString()}::TIMESTAMPTZ
+              AND created_at <  ${windowEnd.toISOString()}::TIMESTAMPTZ
+              AND deleted_at IS NULL
+          `).catch(() => [{}]);
+
+          const decided = row?.decided ?? 0;
+          windows.push(decided > 0 ? (row.correct / decided) : null);
+        }
+
+        // Compute linear regression slope on non-null windows
+        const valid = windows.map((v, i) => ({ v, i })).filter(x => x.v != null);
+        if (valid.length < 3) continue;
+
+        const n = valid.length;
+        const sumI = valid.reduce((s, x) => s + x.i, 0);
+        const sumV = valid.reduce((s, x) => s + x.v, 0);
+        const sumII = valid.reduce((s, x) => s + x.i * x.i, 0);
+        const sumIV = valid.reduce((s, x) => s + x.i * x.v, 0);
+        const slope = (n * sumIV - sumI * sumV) / (n * sumII - sumI * sumI);
+
+        const existingDecay = strategy.alpha_decay || {};
+        const prevConsecutiveWeeks = existingDecay.consecutiveWeeksBelow ?? 0;
+        const belowThreshold = slope < -0.01;
+        const consecutiveWeeks = belowThreshold ? prevConsecutiveWeeks + 1 : 0;
+        const isFlagged = consecutiveWeeks >= 3;
+
+        await updateAlphaDecay(strategy.id, {
+          rolling30d: windows,
+          slope: Math.round(slope * 10000) / 10000,
+          consecutiveWeeksBelow: consecutiveWeeks,
+          flagged: isFlagged,
+          flaggedAt: isFlagged && !existingDecay.flagged ? new Date().toISOString() : existingDecay.flaggedAt,
+        });
+
+        if (isFlagged && !existingDecay.flagged) {
+          flagged++;
+          console.log(`[worker:alpha-decay] Strategy ${strategy.id} flagged for decay (slope ${slope.toFixed(4)})`);
+        }
+      }
+    }
+
+    if (flagged > 0) console.log(`[worker:alpha-decay] Flagged ${flagged} strategies for alpha decay`);
   }));
 
   // ─── Swarm digest generation (every 30 min) ──────────────────────────────

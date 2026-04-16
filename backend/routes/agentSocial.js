@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { requireAgentKey, requireAuth } from "../auth/middleware.js";
 import { hlInfoPost } from "../lib/hlClient.js";
-import { computeAllIndicators, computeSignalVotes, classifyRegime, computeBacktestStats, evaluateConditions, validateCondition, resolvePath } from "../lib/indicatorEngine.js";
+import { computeAllIndicators, computeSignalVotes, classifyRegime, classifyMarketRegime, classifyFundingRegime, computeBacktestStats, evaluateConditions, validateCondition, resolvePath } from "../lib/indicatorEngine.js";
+import { getStrategiesByAgent } from "../db/queries/strategies.js";
 import { verifyMessage } from "ethers";
 import { stripHtml } from "../lib/helpers.js";
 import { sendAgentEvent, addSseConnection } from "../lib/wsServer.js";
@@ -98,6 +99,7 @@ router.get("/home", requireAgentKey, async (req, res) => {
       networkConsensusRows,
       notableCallRows,
       recentLessonRows,
+      activeStrategies,
     ] = await Promise.all([
       getRecentScoredPredictions(addr, 30),
       getFollowFeed({ followerAddress: addr, hoursAgo: 24, limit: 10 }),
@@ -106,6 +108,7 @@ router.get("/home", requireAgentKey, async (req, res) => {
       getNetworkConsensus(),
       getNotableCalls({ hoursAgo: 6, limit: 5 }),
       getRecentLessons(addr, null, 20),
+      getStrategiesByAgent(addr, 'active').catch(() => []),
     ]);
 
     // Build sentiment from raw rows (same logic as /sentiment)
@@ -163,6 +166,47 @@ router.get("/home", requireAgentKey, async (req, res) => {
       // neutral: keep counting (doesn't break streak, doesn't increment)
     }
 
+    // ─── Portfolio circuit breaker ──────────────────────────────────────────
+    // Estimate drawdown from peak using recent prediction net deltas.
+    // Only fired when portfolio drawdown from peak > 15%.
+    const recentDeltas = predResults
+      .filter(r => r.outcome === "correct" || r.outcome === "wrong")
+      .map(r => {
+        if (!r.priceAtCall || !r.priceAtExpiry) return 0;
+        const gross = (r.priceAtExpiry - r.priceAtCall) / r.priceAtCall;
+        return r.direction === "bull" ? gross : -gross;
+      });
+
+    let drawdownFromPeak = 0;
+    if (recentDeltas.length > 0) {
+      let equity = 1, peak = 1;
+      for (const d of [...recentDeltas].reverse()) {
+        equity *= (1 + d);
+        if (equity > peak) peak = equity;
+      }
+      drawdownFromPeak = peak > 0 ? Math.max(0, (peak - equity) / peak) : 0;
+    }
+
+    const circuitBreakerActive = drawdownFromPeak >= 0.15;
+    const kellyMultiplier = circuitBreakerActive ? 0.35 : 0.50;
+
+    // ─── Funding regime (portfolio-level proxy from sentiment data) ─────────
+    // Use available funding rates from indicator caches for monitored coins.
+    let fundingRegime = "funding_neutral";
+    try {
+      const mids = await hlInfoPost({ type: "allMids" }).catch(() => null);
+      if (mids) {
+        const { indicatorCache, INDICATOR_CACHE_TTL } = await import("./agentTrading.js");
+        const fundingRates = [];
+        for (const [, cached] of indicatorCache) {
+          if (Date.now() - cached.time < INDICATOR_CACHE_TTL && cached.data?.fundingRate != null) {
+            fundingRates.push(cached.data.fundingRate);
+          }
+        }
+        if (fundingRates.length > 0) fundingRegime = classifyFundingRegime(fundingRates);
+      }
+    } catch { /* non-critical */ }
+
     const result = {
       your_account: {
         accuracy,
@@ -216,6 +260,23 @@ router.get("/home", requireAgentKey, async (req, res) => {
         createdAt: r.created_at,
       })),
       posts_from_agents_you_follow: followFeedRows.map(mapPostRow),
+      // ─── Strategy intelligence layer ──────────────────────────────────────
+      circuit_breaker: {
+        active: circuitBreakerActive,
+        drawdownFromPeak: Math.round(drawdownFromPeak * 10000) / 100, // as percentage
+        kellyMultiplier,
+        haltNewPositions: circuitBreakerActive,
+      },
+      funding_regime: fundingRegime,
+      active_strategies: (activeStrategies || []).map(s => ({
+        id: s.id,
+        direction: s.direction,
+        timeframe: s.timeframe,
+        coin: s.coin,
+        kellyFraction: s.kelly_fraction,
+        consecutiveLosses: s.consecutive_losses,
+        status: s.status,
+      })),
     };
 
     homeCache[addr] = result;
@@ -1248,7 +1309,7 @@ router.get("/state", requireAgentKey, async (req, res) => {
 
 // ─── PUT /api/state — Upsert agent's stored state ───────────────────
 
-const MAX_STATE_SIZE = 64 * 1024; // 64KB
+const MAX_STATE_SIZE = 256 * 1024; // 256KB (increased from 64KB for strategy registry)
 
 router.put("/state", requireAgentKey, async (req, res) => {
   try {
@@ -1259,8 +1320,11 @@ router.put("/state", requireAgentKey, async (req, res) => {
       return res.status(400).json({ error: "state must be a JSON object" });
     }
 
-    // Strip disallowed keys
+    // Strip server-managed and obsolete fields — silently dropped so old agents still get 200
     delete state.insights;
+    delete state.wrongStreak;        // computed server-side in /api/home — do not store
+    delete state.lessons;            // stored per-prediction via PUT /predictions/:id/lesson
+    delete state.backtestHypotheses; // superseded by strategy registry
 
     // Load existing state for deep merge
     const prev = await getExistingState(addr);
@@ -1498,62 +1562,6 @@ router.post("/agents/:address/backtest", requireAuth, async (req, res) => {
   }
 });
 
-// ─── POST /api/agents/:address/backtest/hypotheses — Save a hypothesis ───────
-
-router.post("/agents/:address/backtest/hypotheses", requireAuth, async (req, res) => {
-  try {
-    const agentAddr = req.params.address.toLowerCase();
-    const viewerAddr = req.userAddress?.toLowerCase();
-    const { agentProfile, error, status } = await checkBacktestAccess(agentAddr, viewerAddr);
-    if (error) return res.status(status).json({ error });
-
-    const { coin, timeframe, direction, conditions, accuracy, totalSignals } = req.body;
-    if (!coin || !timeframe || !direction || !Array.isArray(conditions) || conditions.length === 0) {
-      return res.status(400).json({ error: "coin, timeframe, direction, conditions required" });
-    }
-
-    const existing = await getExistingState(agentAddr);
-    const hypotheses = existing?.backtestHypotheses ?? [];
-
-    const newHypothesis = {
-      id: randomUUID(),
-      coin,
-      timeframe,
-      direction,
-      conditions,
-      lastAccuracy: accuracy ?? null,
-      lastSignals: totalSignals ?? null,
-      savedAt: new Date().toISOString(),
-    };
-
-    await upsertState(agentAddr, { ...existing, backtestHypotheses: [...hypotheses, newHypothesis] });
-    res.json(newHypothesis);
-  } catch (err) {
-    console.error("[AgentSocial] /backtest/hypotheses POST error:", err.message);
-    res.status(500).json({ error: "Failed to save hypothesis" });
-  }
-});
-
-// ─── DELETE /api/agents/:address/backtest/hypotheses/:id — Remove a hypothesis
-
-router.delete("/agents/:address/backtest/hypotheses/:id", requireAuth, async (req, res) => {
-  try {
-    const agentAddr = req.params.address.toLowerCase();
-    const viewerAddr = req.userAddress?.toLowerCase();
-    const { agentProfile, error, status } = await checkBacktestAccess(agentAddr, viewerAddr);
-    if (error) return res.status(status).json({ error });
-
-    const hypothesisId = req.params.id;
-    const existing = await getExistingState(agentAddr);
-    const hypotheses = (existing?.backtestHypotheses ?? []).filter(h => h.id !== hypothesisId);
-    await upsertState(agentAddr, { ...existing, backtestHypotheses: hypotheses });
-    res.json({ ok: true });
-  } catch (err) {
-    console.error("[AgentSocial] /backtest/hypotheses DELETE error:", err.message);
-    res.status(500).json({ error: "Failed to delete hypothesis" });
-  }
-});
-
 // ─── GET /api/agents/:address/backtest/scan — Rank all coin×timeframe pairs ──
 
 router.get("/agents/:address/backtest/scan", requireAuth, async (req, res) => {
@@ -1618,6 +1626,219 @@ router.get("/agents/:address/backtest/scan", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[AgentSocial] /backtest/scan error:", err.message);
     res.status(500).json({ error: "Scan failed" });
+  }
+});
+
+// ─── Strategy Registry CRUD ───────────────────────────────────────────────────
+import { randomUUID as _uuid } from "node:crypto";
+import {
+  insertStrategy, getStrategy, getStrategiesByAgent as _getStrategies,
+  updateStrategyStatus, updateStrategyStats, getFoldsForStrategy,
+  incrementConsecutiveLosses as _incrLosses, resetConsecutiveLosses as _resetLosses,
+  getDevSetPredictions, getHoldoutSetPredictions,
+  upsertCoinEdgeProfile, getCoinEdgeProfiles, getSuppressedCoins,
+} from "../db/queries/strategies.js";
+import { computeKelly, computeCVaR95, computePositionSize, computeStrategyStats } from "../lib/kellyEngine.js";
+import { bootstrapAccuracyCI, checkPromotionGate, hasRegimeEdge, walkForwardCoversRegimes, multipleComparisonCorrection } from "../lib/statisticalStandards.js";
+
+// GET /api/agents/:address/strategies — List agent's strategies
+router.get("/agents/:address/strategies", requireAuth, async (req, res) => {
+  try {
+    const agentAddr = req.params.address.toLowerCase();
+    const { error, status } = await checkBacktestAccess(agentAddr, req.userAddress?.toLowerCase());
+    if (error) return res.status(status).json({ error });
+
+    const statusFilter = req.query.status || null;
+    const strategies = await _getStrategies(agentAddr, statusFilter);
+    res.json({ strategies });
+  } catch (err) {
+    console.error("[AgentSocial] /strategies GET error:", err.message);
+    res.status(500).json({ error: "Failed to fetch strategies" });
+  }
+});
+
+// POST /api/agents/:address/strategies — Create a new strategy hypothesis
+router.post("/agents/:address/strategies", requireAuth, async (req, res) => {
+  try {
+    const agentAddr = req.params.address.toLowerCase();
+    const viewerAddr = req.userAddress?.toLowerCase();
+    if (viewerAddr !== agentAddr) return res.status(403).json({ error: "Forbidden" });
+
+    const { conditions, direction, timeframe, coin, parentId, mutationType, insight } = req.body;
+    if (!Array.isArray(conditions) || conditions.length === 0) {
+      return res.status(400).json({ error: "conditions must be a non-empty array" });
+    }
+    if (!direction || !["bull", "bear"].includes(direction)) {
+      return res.status(400).json({ error: "direction must be bull or bear" });
+    }
+    for (const c of conditions) {
+      const err = validateCondition(c);
+      if (err) return res.status(400).json({ error: `Invalid condition: ${err}` });
+    }
+
+    const id = `s_${_uuid().replace(/-/g, "").slice(0, 8)}`;
+    await insertStrategy({ id, agentAddress: agentAddr, parentId, mutationType: mutationType || "origin", conditions, direction, timeframe, coin, insight });
+    const strategy = await getStrategy(id);
+    res.status(201).json(strategy);
+  } catch (err) {
+    console.error("[AgentSocial] /strategies POST error:", err.message);
+    res.status(500).json({ error: "Failed to create strategy" });
+  }
+});
+
+// PATCH /api/agents/:address/strategies/:id/status — Promote / suspend / retire
+router.patch("/agents/:address/strategies/:id/status", requireAuth, async (req, res) => {
+  try {
+    const agentAddr = req.params.address.toLowerCase();
+    if (req.userAddress?.toLowerCase() !== agentAddr) return res.status(403).json({ error: "Forbidden" });
+
+    const VALID_TRANSITIONS = new Set(["candidate", "dev_validated", "holdout_validated", "shadow", "active", "suspended", "retired"]);
+    const { status } = req.body;
+    if (!VALID_TRANSITIONS.has(status)) return res.status(400).json({ error: `Invalid status. Must be one of: ${[...VALID_TRANSITIONS].join(", ")}` });
+
+    const strategy = await getStrategy(req.params.id);
+    if (!strategy || strategy.agent_address !== agentAddr) return res.status(404).json({ error: "Strategy not found" });
+
+    await updateStrategyStatus(req.params.id, status);
+    res.json({ ok: true, id: req.params.id, status });
+  } catch (err) {
+    console.error("[AgentSocial] /strategies PATCH error:", err.message);
+    res.status(500).json({ error: "Failed to update strategy status" });
+  }
+});
+
+// ─── POST /api/agents/:address/strategies/:id/evaluate ────────────────────────
+// Evaluate a strategy against the agent's own scored prediction history.
+// Unlike /backtest (which runs on live candles), this uses stored predictions
+// with regime labels, net deltas, and ATR — the fully correct statistical inputs.
+
+router.post("/agents/:address/strategies/:id/evaluate", requireAuth, async (req, res) => {
+  try {
+    const agentAddr = req.params.address.toLowerCase();
+    const { error, status } = await checkBacktestAccess(agentAddr, req.userAddress?.toLowerCase());
+    if (error) return res.status(status).json({ error });
+
+    const strategy = await getStrategy(req.params.id);
+    if (!strategy || strategy.agent_address !== agentAddr) return res.status(404).json({ error: "Strategy not found" });
+
+    const { useHoldout = false, regimeFilter } = req.body ?? {};
+
+    // Holdout can only be unsealed for dev_validated+ strategies
+    if (useHoldout && !["dev_validated", "holdout_validated", "shadow", "active"].includes(strategy.status)) {
+      return res.status(400).json({ error: "Holdout can only be unsealed after dev_validated gate is passed" });
+    }
+
+    const fetchFn = useHoldout ? getHoldoutSetPredictions : getDevSetPredictions;
+    const predictions = await fetchFn(agentAddr, {
+      coin: strategy.coin !== "*" ? strategy.coin : undefined,
+      timeframe: strategy.timeframe || undefined,
+      regimeFilter,
+    });
+
+    // Filter predictions that match strategy conditions
+    const conditions = strategy.conditions;
+    const direction = strategy.direction;
+
+    const matched = predictions.filter(p => {
+      if (direction && p.direction !== direction) return false;
+      if (!p.indicators_at_call) return true; // no snapshot — include (conservative)
+      return evaluateConditions(p.indicators_at_call, conditions, "all");
+    });
+
+    const stats = computeStrategyStats(matched.map(p => ({
+      outcome: p.outcome,
+      netDelta: p.net_delta,
+      atrAtCall: p.atr_at_call,
+      confidence: p.confidence,
+      createdAt: p.created_at,
+      marketRegime: p.market_regime,
+    })));
+
+    // Bootstrap CI on outcomes
+    const outcomes = matched.filter(p => p.outcome === "correct" || p.outcome === "wrong").map(p => p.outcome);
+    const ci = bootstrapAccuracyCI(outcomes);
+
+    const fullStats = { ...stats, ciLower: ci.lower, ciUpper: ci.upper };
+
+    // Check against promotion gate
+    const gateName = useHoldout ? "holdoutValidated" : "devValidated";
+    const gateResult = checkPromotionGate(fullStats, gateName);
+    const regimeCoverage = hasRegimeEdge(fullStats.regimeAccuracy);
+
+    // Build walk-forward folds from prediction history (expanding window, 3 folds)
+    const scoredPreds = matched.filter(p => p.outcome === "correct" || p.outcome === "wrong");
+    const walkForward = buildWalkForwardFolds(scoredPreds, 3);
+
+    // Persist stats back to strategy
+    if (!useHoldout) {
+      await updateStrategyStats(strategy.id, {
+        devStats: fullStats,
+        regimeAccuracy: fullStats.regimeAccuracy,
+        kellyFraction: fullStats.kellyFraction,
+      });
+    } else {
+      await updateStrategyStats(strategy.id, {
+        holdoutStats: fullStats,
+      });
+    }
+
+    res.json({
+      strategyId: strategy.id,
+      gate: gateName,
+      totalPredictions: predictions.length,
+      matchedSignals: matched.length,
+      stats: fullStats,
+      walkForward,
+      promotionGate: gateResult,
+      hasRegimeEdge: regimeCoverage,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("[AgentSocial] /strategies/evaluate error:", err.message);
+    res.status(500).json({ error: "Evaluation failed" });
+  }
+});
+
+// Build 3 expanding walk-forward folds from prediction history
+function buildWalkForwardFolds(predictions, numFolds = 3) {
+  if (predictions.length < numFolds * 10) return [];
+  const sorted = [...predictions].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const folds = [];
+  for (let i = 0; i < numFolds; i++) {
+    const trainEnd = Math.floor(sorted.length * ((i + 1) / (numFolds + 1)));
+    const testEnd  = Math.floor(sorted.length * ((i + 2) / (numFolds + 1)));
+    const train = sorted.slice(0, trainEnd);
+    const test  = sorted.slice(trainEnd, testEnd);
+    if (test.length < 10) continue;
+    const correct = test.filter(p => p.outcome === "correct").length;
+    const decided = test.filter(p => p.outcome === "correct" || p.outcome === "wrong").length;
+    const regimes = [...new Set(test.map(p => p.market_regime).filter(Boolean))];
+    folds.push({
+      fold: i + 1,
+      trainSignals: train.length,
+      testSignals: decided,
+      accuracy: decided > 0 ? Math.round(correct / decided * 1000) / 10 : null,
+      regimesCovered: regimes,
+      from: sorted[trainEnd]?.created_at ?? null,
+      to:   sorted[testEnd - 1]?.created_at ?? null,
+    });
+  }
+  return folds;
+}
+
+// ─── GET /api/agents/:address/strategies/:id/coin-profiles ────────────────────
+router.get("/agents/:address/strategies/:id/coin-profiles", requireAuth, async (req, res) => {
+  try {
+    const agentAddr = req.params.address.toLowerCase();
+    const { error, status } = await checkBacktestAccess(agentAddr, req.userAddress?.toLowerCase());
+    if (error) return res.status(status).json({ error });
+
+    const profiles = await getCoinEdgeProfiles(agentAddr);
+    const suppressed = await getSuppressedCoins(agentAddr);
+    res.json({ profiles, suppressedCoins: suppressed.map(r => r.coin) });
+  } catch (err) {
+    console.error("[AgentSocial] /coin-profiles error:", err.message);
+    res.status(500).json({ error: "Failed to fetch coin profiles" });
   }
 });
 

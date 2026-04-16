@@ -5,11 +5,9 @@ import { ensureDb, createTestApp, createTestUser, createTestAgent } from "./setu
 const app = createTestApp()
 let user, agent1, agent2
 
-// Helper: valid state with all required fields
+// Helper: valid state with required field
 const validState = (overrides = {}) => ({
   lastCheck: "2026-03-25T10:00:00Z",
-  lessons: [],
-  wrongStreak: 0,
   ...overrides,
 })
 
@@ -65,7 +63,6 @@ describe("PUT /api/state", () => {
 
     expect(getRes.status).toBe(200)
     expect(getRes.body.state.trustWeights).toEqual({ "0xabc": 0.8 })
-    expect(getRes.body.state.wrongStreak).toBe(0)
     expect(getRes.body.updatedAt).not.toBeNull()
   })
 
@@ -73,33 +70,50 @@ describe("PUT /api/state", () => {
     const putRes = await request(app)
       .put("/api/state")
       .set("X-Agent-Key", agent1.apiKey)
-      .send({ state: { wrongStreak: 3 } })
+      .send({ state: { activePredictions: ["BTC:1h"] } })
 
     expect(putRes.status).toBe(200)
-    expect(putRes.body.state.wrongStreak).toBe(3)
+    expect(putRes.body.state.activePredictions).toEqual(["BTC:1h"])
     // trustWeights from previous save should still be there
     expect(putRes.body.state.trustWeights).toEqual({ "0xabc": 0.8 })
   })
 
-  it("merges arrays — appends new items", async () => {
+  it("strips server-managed fields — wrongStreak, lessons, backtestHypotheses", async () => {
     const putRes = await request(app)
       .put("/api/state")
       .set("X-Agent-Key", agent1.apiKey)
-      .send({ state: { lessons: [{ coin: "BTC", type: "mistake", lesson: "test lesson", date: "2026-03-25" }] } })
+      .send({ state: {
+        wrongStreak: 5,
+        lessons: [{ coin: "BTC", type: "mistake", lesson: "test", date: "2026-03-25" }],
+        backtestHypotheses: [{ id: "h1", coin: "BTC" }],
+        lastCheck: "2026-03-25T10:00:00Z",
+      } })
 
     expect(putRes.status).toBe(200)
-    expect(putRes.body.state.lessons).toHaveLength(1)
+    expect(putRes.body.state.wrongStreak).toBeUndefined()
+    expect(putRes.body.state.lessons).toBeUndefined()
+    expect(putRes.body.state.backtestHypotheses).toBeUndefined()
+  })
+
+  it("merges arrays — appends new items (savedNotableCalls)", async () => {
+    const putRes = await request(app)
+      .put("/api/state")
+      .set("X-Agent-Key", agent1.apiKey)
+      .send({ state: { savedNotableCalls: ["post-uuid-1"] } })
+
+    expect(putRes.status).toBe(200)
+    expect(putRes.body.state.savedNotableCalls).toHaveLength(1)
 
     // Append another
     const putRes2 = await request(app)
       .put("/api/state")
       .set("X-Agent-Key", agent1.apiKey)
-      .send({ state: { lessons: [{ coin: "ETH", type: "pattern", lesson: "another lesson", date: "2026-03-25" }] } })
+      .send({ state: { savedNotableCalls: ["post-uuid-2"] } })
 
     expect(putRes2.status).toBe(200)
-    expect(putRes2.body.state.lessons).toHaveLength(2)
-    expect(putRes2.body.state.lessons[0].coin).toBe("BTC")
-    expect(putRes2.body.state.lessons[1].coin).toBe("ETH")
+    expect(putRes2.body.state.savedNotableCalls).toHaveLength(2)
+    expect(putRes2.body.state.savedNotableCalls).toContain("post-uuid-1")
+    expect(putRes2.body.state.savedNotableCalls).toContain("post-uuid-2")
   })
 
   it("merges objects — adds new keys, overwrites existing", async () => {
@@ -172,16 +186,17 @@ describe("PUT /api/state", () => {
   })
 
   it("accepts partial update when existing state has required fields", async () => {
-    // agent1 already has required fields from earlier tests
+    // agent1 already has lastCheck from earlier tests
     const res = await request(app)
       .put("/api/state")
       .set("X-Agent-Key", agent1.apiKey)
-      .send({ state: { lastCheck: "2024-01-01" } })
+      .send({ state: { trustWeights: { "0xnew": 0.6 } } })
 
     expect(res.status).toBe(200)
-    // Required fields still present from previous saves
+    // lastCheck from previous save still present
     expect(res.body.state.lastCheck).toBeDefined()
-    expect(res.body.state.wrongStreak).toBeDefined()
+    // new key merged in
+    expect(res.body.state.trustWeights["0xnew"]).toBe(0.6)
   })
 
   it("ignores insights key — notes are not saved to state", async () => {
@@ -194,11 +209,11 @@ describe("PUT /api/state", () => {
     expect(res.body.state.insights).toBeUndefined()
   })
 
-  it("rejects state exceeding 64KB", async () => {
+  it("rejects state exceeding 256KB", async () => {
     const res = await request(app)
       .put("/api/state")
       .set("X-Agent-Key", agent1.apiKey)
-      .send({ state: { bigField: "x".repeat(65 * 1024) } })
+      .send({ state: { bigField: "x".repeat(257 * 1024) } })
 
     expect(res.status).toBe(400)
     expect(res.body.error).toMatch(/too large/)
